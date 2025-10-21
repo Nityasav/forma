@@ -1,0 +1,8 @@
+Django==4.2
+djangorestframework==3.14
+django-cors-headers==4.2
+python-decouple==3.8
+openai==1.0
+supabase==2.0
+psycopg[binary]==3.2.11
+python-dotenv==1.0

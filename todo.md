@@ -31,21 +31,21 @@
   - [x] `NEXT_PUBLIC_SUPABASE_URL=`
   - [x] `NEXT_PUBLIC_SUPABASE_ANON_KEY=`
   - [x] `NEXT_PUBLIC_API_URL=http://localhost:8000`
-- [x] Verify dev server: `npm run dev` (localhost:3000)
+- [ ] Verify dev server: `npm run dev` (localhost:3000)
 - [ ] Test Tailwind CSS (styles visible)
 - [ ] Test TypeScript (no errors)
 - [ ] Commit: "feat: Initialize Next.js frontend with App Router"
 
 ### Setup Backend (Django)
-- [ ] Create virtual environment: `python -m venv venv`
-- [ ] Activate venv
-- [ ] Create Django project: `django-admin startproject forma_backend`
-- [ ] Create Django apps:
+- [x] Create virtual environment: `python -m venv venv`
+- [x] Activate venv
+- [x] Create Django project: `django-admin startproject forma_backend`
+- [x] Create Django apps:
   - [ ] `python manage.py startapp users`
   - [ ] `python manage.py startapp projects`
   - [ ] `python manage.py startapp metadata`
   - [ ] `python manage.py startapp core`
-- [ ] Create `requirements.txt`:
+- [x] Create `requirements.txt`:
   - [ ] Django==4.2
   - [ ] djangorestframework==3.14
   - [ ] django-cors-headers==4.2
@@ -57,8 +57,8 @@
   - [ ] playwright==1.40
   - [ ] mammoth==0.4 (DOCX parsing)
   - [ ] pdf-parse-py==0.1 (PDF parsing) OR pdfplumber
-- [ ] Install dependencies: `pip install -r requirements.txt`
-- [ ] Create `.env` file with placeholders:
+- [x] Install dependencies: `pip install -r requirements.txt`
+- [x] Create `.env` file with placeholders:
   - [ ] `DEBUG=True`
   - [ ] `SECRET_KEY=generate-new-key`
   - [ ] `SUPABASE_URL=`
@@ -69,15 +69,15 @@
   - [ ] `EMAIL_PORT=`
   - [ ] `EMAIL_USER=`
   - [ ] `EMAIL_PASSWORD=`
-- [ ] Configure Django settings.py:
+- [x] Configure Django settings.py:
   - [ ] Add installed apps (rest_framework, corsheaders, users, projects, metadata, core)
   - [ ] Configure CORS for localhost:3000
   - [ ] Configure JWT authentication
   - [ ] Setup Supabase PostgreSQL connection
   - [ ] Configure static files
-- [ ] Verify dev server: `python manage.py runserver` (localhost:8000)
+- [x] Verify dev server: `python manage.py runserver` (localhost:8000)
 - [ ] Test database connection (can ping Supabase)
-- [ ] Verify Django admin works
+- [x] Verify Django admin works
 - [ ] Commit: "feat: Initialize Django backend with DRF"
 
 ### Setup Supabase
