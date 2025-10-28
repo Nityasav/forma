@@ -141,7 +141,7 @@ insert into storage.buckets (id, name) values ('manuscripts', 'manuscripts')
 
 create policy "Users can manage own manuscripts" on storage.objects
     for all
-    using (bucket_id = 'manuscripts' and auth.uid()::text = owner)
+    using (bucket_id = 'manuscripts' and auth.uid() = owner)
     with check (bucket_id = 'manuscripts' and path_tokens[1] = auth.uid()::text);
 
 -- PDFs bucket policies
@@ -150,6 +150,6 @@ insert into storage.buckets (id, name) values ('pdfs', 'pdfs')
 
 create policy "Users can manage own generated pdfs" on storage.objects
     for all
-    using (bucket_id = 'pdfs' and auth.uid()::text = owner)
+    using (bucket_id = 'pdfs' and auth.uid() = owner)
     with check (bucket_id = 'pdfs' and path_tokens[1] = auth.uid()::text);
 

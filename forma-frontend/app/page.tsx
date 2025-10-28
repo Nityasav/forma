@@ -1,103 +1,128 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useState } from "react";
+import { createSupabaseBrowserClient } from "@/lib/supabase";
+
+type AuthState = "idle" | "loading" | "authenticated" | "unauthenticated";
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [authState, setAuthState] = useState<AuthState>("idle");
+  const [error, setError] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        setAuthState("authenticated");
+        setUserEmail(data.user.email ?? null);
+      } else {
+        setAuthState("unauthenticated");
+      }
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setAuthState("authenticated");
+        setUserEmail(session.user.email ?? null);
+      } else {
+        setAuthState("unauthenticated");
+        setUserEmail(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleGoogleSignIn = async () => {
+    setError(null);
+    setAuthState("loading");
+    const supabase = createSupabaseBrowserClient();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+
+    if (error) {
+      setError(error.message);
+      setAuthState("unauthenticated");
+    }
+  };
+
+  const handleSignOut = async () => {
+    setError(null);
+    const supabase = createSupabaseBrowserClient();
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      setError(error.message);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center px-4">
+      <div className="max-w-md w-full space-y-8">
+        <div className="text-center space-y-2">
+          <p className="text-sm text-gray-400">FORMA • Supabase Auth Test</p>
+          <h1 className="text-3xl font-semibold">Google Sign-In</h1>
+          <p className="text-gray-400">
+            Use this minimal screen to verify Supabase OAuth with Google before
+            integrating into the full app.
+          </p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-6 space-y-4">
+          {authState === "authenticated" ? (
+            <div className="space-y-3">
+              <p className="text-sm text-gray-400">Signed in as</p>
+              <p className="text-lg font-medium">{userEmail}</p>
+              <button
+                onClick={handleSignOut}
+                className="w-full rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors py-3"
+              >
+                Sign out
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <button
+                onClick={handleGoogleSignIn}
+                disabled={authState === "loading"}
+                className="w-full rounded-lg bg-white text-gray-900 hover:bg-gray-200 transition-colors py-3 font-medium"
+              >
+                {authState === "loading"
+                  ? "Redirecting to Google..."
+                  : "Continue with Google"}
+              </button>
+              <p className="text-xs text-gray-500 text-center">
+                Your browser will redirect to Google → Supabase → this page.
+              </p>
+            </div>
+          )}
+
+          {error ? (
+            <div className="rounded-lg border border-red-700 bg-red-950/60 text-red-100 px-4 py-3 text-sm">
+              {error}
+            </div>
+          ) : authState === "authenticated" ? (
+            <div className="rounded-lg border border-emerald-700 bg-emerald-950/60 text-emerald-100 px-4 py-3 text-sm">
+              Google OAuth successful. Session established.
+            </div>
+          ) : null}
+        </div>
+
+        <div className="text-xs text-gray-500 space-y-1">
+          <p>
+            • Make sure `NEXT_PUBLIC_SUPABASE_URL` and
+            `NEXT_PUBLIC_SUPABASE_ANON_KEY` are set.
+          </p>
+          <p>• For local testing, Site URL can remain http://localhost:3000.</p>
+        </div>
+      </div>
     </div>
   );
 }
