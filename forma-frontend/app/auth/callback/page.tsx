@@ -5,6 +5,20 @@ import { useRouter } from "next/navigation";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase";
 
+const cleanAuthParams = () => {
+  const url = new URL(window.location.href);
+  url.hash = "";
+  url.search = "";
+  window.history.replaceState({}, document.title, url.pathname);
+};
+
+type VerifyType =
+  | "signup"
+  | "invite"
+  | "magiclink"
+  | "recovery"
+  | "email_change";
+
 function CallbackContent() {
   const router = useRouter();
   const [status, setStatus] = useState<"exchanging" | "success" | "error">(
@@ -14,57 +28,118 @@ function CallbackContent() {
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
+    let cancelled = false;
+
+    const redirectToDashboard = () => {
+      cleanAuthParams();
+      setStatus("success");
+      setTimeout(() => router.replace("/dashboard"), 500);
+    };
 
     const handleCallback = async () => {
-      const url = new URL(window.location.href);
-      const code = url.searchParams.get("code");
-      const errorDescription = url.searchParams.get("error_description");
-
-      const { data: activeSession, error: sessionError } =
+      const { data: existingSession, error: existingError } =
         await supabase.auth.getSession();
 
-      if (sessionError) {
+      if (cancelled) return;
+
+      if (existingError) {
         setStatus("error");
-        setMessage(sessionError.message);
+        setMessage(existingError.message);
         return;
       }
 
-      if (activeSession.session) {
-        setStatus("success");
-        setTimeout(() => router.replace("/"), 500);
+      if (existingSession.session) {
+        redirectToDashboard();
         return;
       }
 
-      if (!code) {
-        if (errorDescription) {
+      const hashParams = new URLSearchParams(window.location.hash.slice(1));
+      const accessToken = hashParams.get("access_token");
+      const refreshToken = hashParams.get("refresh_token");
+
+      if (accessToken && refreshToken) {
+        const { data: tokenSession, error: tokenError } =
+          await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+
+        if (cancelled) return;
+
+        if (tokenError || !tokenSession.session) {
           setStatus("error");
-          setMessage(errorDescription);
-        } else {
-          setStatus("error");
-          setMessage("Missing OAuth code.");
+          setMessage(tokenError?.message ?? "Unable to establish a session.");
+          return;
         }
+
+        redirectToDashboard();
         return;
       }
 
-      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+      const currentUrl = new URL(window.location.href);
+      const token = currentUrl.searchParams.get("token");
+      const email = currentUrl.searchParams.get("email");
+      const typeParam = currentUrl.searchParams.get("type");
+      const code = currentUrl.searchParams.get("code");
+      const errorDescription = currentUrl.searchParams.get(
+        "error_description",
+      );
 
-      if (error) {
+      if (token && typeParam) {
+        if (!email) {
+          setStatus("error");
+          setMessage("Missing email for verification.");
+          return;
+        }
+
+        const { data, error } = await supabase.auth.verifyOtp({
+          email,
+          token,
+          type: typeParam as VerifyType,
+        });
+
+        if (cancelled) return;
+
+        if (error || !data.session) {
+          setStatus("error");
+          setMessage(error?.message ?? "Unable to verify email.");
+          return;
+        }
+
+        redirectToDashboard();
+        return;
+      }
+
+      if (code) {
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+
+        if (cancelled) return;
+
+        if (error || !data.session) {
+          setStatus("error");
+          setMessage(error?.message ?? "Unable to complete sign-in.");
+          return;
+        }
+
+        redirectToDashboard();
+        return;
+      }
+
+      if (errorDescription) {
         setStatus("error");
-        setMessage(error.message);
+        setMessage(errorDescription);
         return;
       }
 
-      if (!data.session) {
-        setStatus("error");
-        setMessage("No session returned from Supabase.");
-        return;
-      }
-
-      setStatus("success");
-      setTimeout(() => router.replace("/"), 500);
+      setStatus("error");
+      setMessage("No active session. Please try signing in again.");
     };
 
     handleCallback();
+
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   return (
@@ -72,7 +147,7 @@ function CallbackContent() {
       <h1 className="text-2xl font-semibold">Signing you in…</h1>
       {status === "exchanging" && (
         <p className="text-sm text-gray-400">
-          Exchanging OAuth code with Supabase. You will be redirected in a
+          Exchanging credentials with Supabase. You will be redirected in a
           moment.
         </p>
       )}
@@ -87,10 +162,10 @@ function CallbackContent() {
             We couldn’t complete the sign-in. {message}
           </p>
           <button
-            onClick={() => router.replace("/")}
+            onClick={() => router.replace("/auth/login")}
             className="rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors px-4 py-2"
           >
-            Return home
+            Back to login
           </button>
         </div>
       )}
